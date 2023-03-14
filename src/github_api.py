@@ -1,45 +1,40 @@
 import requests
-from typing import Dict
 from collections import defaultdict
+from datetime import datetime
 
-def fetch_hourly_commits(username):
-    commit_data = fetch_all_commits(username)
-    hourly_commits = defaultdict(lambda: defaultdict(int))
-
-    for commit in commit_data:
-        dt = commit["commit"]["author"]["date"]
-        day_of_week = dt.weekday()
-        hour_of_day = dt.hour
-        hourly_commits[day_of_week][hour_of_day] += 1
-
-    print("Hourly commits:", hourly_commits)  # Debugging line
-    return hourly_commits
-
-def fetch_all_commits(username: str) -> list:
+def fetch_all_commits(username):
     url = f"https://api.github.com/users/{username}/repos"
-    response = requests.get(url)
-
+    response = requests.get(url, headers={"Accept": "application/vnd.github+json"})
+    
     if response.status_code != 200:
-        print(f"Error fetching repos for {username}: {response.status_code}")
         return []
 
     repos = response.json()
-    commits = []
+    all_commits = []
 
     for repo in repos:
-        repo_name = repo["name"]
-        commit_url = f"https://api.github.com/repos/{username}/{repo_name}/commits"
-        commit_response = requests.get(commit_url)
-
-        if commit_response.status_code != 200:
-            print(f"Error fetching commits for {repo_name}: {commit_response.status_code}")
+        if not isinstance(repo, dict) or "name" not in repo:
             continue
 
-        repo_commits = commit_response.json()
-        for commit in repo_commits:
-            commit_date = commit["commit"]["committer"]["date"]
-            commit_hour = int(commit_date[11:13])
-            commits.append({"hour": commit_hour})
+        repo_name = repo["name"]
+        commits_url = f"https://api.github.com/repos/{username}/{repo_name}/commits"
+        commit_response = requests.get(commits_url, headers={"Accept": "application/vnd.github+json"})
 
-    print("Fetched hourly commits:", commits)  # Debugging line
-    return commits
+        if commit_response.status_code == 200:
+            all_commits.extend(commit_response.json())
+
+    return all_commits
+
+def fetch_hourly_commits(username):
+    all_commits = fetch_all_commits(username)
+    hourly_commits = defaultdict(int)
+
+    for commit in all_commits:
+        if not isinstance(commit, dict) or "commit" not in commit or "author" not in commit["commit"]:
+            continue
+
+        dt = commit["commit"]["author"]["date"]
+        dt_obj = datetime.fromisoformat(dt)
+        hourly_commits[dt_obj.hour] += 1
+
+    return dict(hourly_commits)
