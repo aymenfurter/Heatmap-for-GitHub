@@ -1,20 +1,26 @@
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
-from typing import Dict, List
 
-def generate_heatmap(commit_data: Dict[str, int]):
-    hours = list(range(24))
-    commit_counts = [commit_data.get(str(hour), 0) for hour in hours]
+def generate_heatmap(hourly_commits: dict) -> plt.Figure:
+    # Initialize an empty 7x24 numpy array
+    data = np.zeros((7, 24))
 
-    data = np.array(commit_counts).reshape(1, 24)
+    # Fill the data array with hourly commit counts
+    for hour, count in hourly_commits.items():
+        day = hour // 24
+        hour_of_day = hour % 24
+        data[day][hour_of_day] = count
 
-    fig, ax = plt.subplots(figsize=(12, 2))
-    heatmap = ax.imshow(data, cmap='hot', aspect='auto', interpolation='nearest')
+    # Create the heatmap using seaborn
+    fig, ax = plt.subplots(figsize=(12, 4))
+    sns.heatmap(data, annot=True, fmt=".0f", cmap="YlGnBu", ax=ax)
 
-    ax.set_yticks([])
-    ax.set_xticks(range(24))
-    ax.set_xticklabels(range(24))
-
-    plt.colorbar(heatmap, ax=ax)
+    # Set the labels and title
+    ax.set_xticklabels([f"{i:02d}:00" for i in range(24)], rotation=45)
+    ax.set_yticklabels(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], rotation=0)
+    ax.set_xlabel("Hour of the Day")
+    ax.set_ylabel("Day of the Week")
+    ax.set_title("GitHub Commit Heatmap")
 
     return fig
