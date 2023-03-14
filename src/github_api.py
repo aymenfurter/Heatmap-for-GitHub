@@ -1,40 +1,41 @@
 import requests
-from collections import defaultdict
 from datetime import datetime
+from dateutil.parser import parse
 
 def fetch_all_commits(username):
-    url = f"https://api.github.com/users/{username}/repos"
-    response = requests.get(url, headers={"Accept": "application/vnd.github+json"})
-    
+    repos_url = f"https://api.github.com/users/{username}/repos"
+    response = requests.get(repos_url)
     if response.status_code != 200:
         return []
 
     repos = response.json()
-    all_commits = []
+    commit_data = []
 
     for repo in repos:
-        if not isinstance(repo, dict) or "name" not in repo:
+        repo_name = repo["name"]
+        commit_url = f"https://api.github.com/repos/{username}/{repo_name}/commits"
+        response = requests.get(commit_url)
+        if response.status_code != 200:
             continue
 
-        repo_name = repo["name"]
-        commits_url = f"https://api.github.com/repos/{username}/{repo_name}/commits"
-        commit_response = requests.get(commits_url, headers={"Accept": "application/vnd.github+json"})
+        commits = response.json()
+        commit_data.extend(commits)
 
-        if commit_response.status_code == 200:
-            all_commits.extend(commit_response.json())
+    print(commit_data)
 
-    return all_commits
+    return commit_data
 
 def fetch_hourly_commits(username):
-    all_commits = fetch_all_commits(username)
-    hourly_commits = defaultdict(int)
+    commit_data = fetch_all_commits(username)
+    hourly_commits = {}
 
-    for commit in all_commits:
-        if not isinstance(commit, dict) or "commit" not in commit or "author" not in commit["commit"]:
-            continue
+    for commit in commit_data:
+        try:
+            dt = commit["commit"]["author"]["date"]
+            dt_obj = parse(dt)
+            hour = dt_obj.hour
+            hourly_commits[hour] = hourly_commits.get(hour, 0) + 1
+        except KeyError:
+            pass
 
-        dt = commit["commit"]["author"]["date"]
-        dt_obj = datetime.fromisoformat(dt)
-        hourly_commits[dt_obj.hour] += 1
-
-    return dict(hourly_commits)
+    return hourly_commits
