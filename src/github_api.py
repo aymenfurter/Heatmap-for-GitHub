@@ -1,15 +1,16 @@
 import requests
 from typing import Dict
+from collections import defaultdict
 
-def fetch_hourly_commits(username: str) -> Dict[str, int]:
+def fetch_hourly_commits(username):
     commit_data = fetch_all_commits(username)
-    hourly_commits = {}
+    hourly_commits = defaultdict(lambda: defaultdict(int))
 
     for commit in commit_data:
-        hour = commit["hour"]
-        if hour not in hourly_commits:
-            hourly_commits[hour] = 0
-        hourly_commits[hour] += 1
+        dt = commit["commit"]["author"]["date"]
+        day_of_week = dt.weekday()
+        hour_of_day = dt.hour
+        hourly_commits[day_of_week][hour_of_day] += 1
 
     print("Hourly commits:", hourly_commits)  # Debugging line
     return hourly_commits
