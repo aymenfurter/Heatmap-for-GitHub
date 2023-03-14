@@ -1,48 +1,44 @@
 import requests
-from typing import Dict, List
-from datetime import datetime, timezone
+from typing import Dict
 
 def fetch_hourly_commits(username: str) -> Dict[str, int]:
     commit_data = fetch_all_commits(username)
-
     hourly_commits = {}
-    for commit in commit_data:
-        commit_hour = commit["commit"]["committer"]["date"].hour
-        if str(commit_hour) not in hourly_commits:
-            hourly_commits[str(commit_hour)] = 1
-        else:
-            hourly_commits[str(commit_hour)] += 1
 
-    print("Fetched hourly commits: ", hourly_commits)
+    for commit in commit_data:
+        hour = commit["hour"]
+        if hour not in hourly_commits:
+            hourly_commits[hour] = 0
+        hourly_commits[hour] += 1
+
+    print("Hourly commits:", hourly_commits)  # Debugging line
     return hourly_commits
 
-def fetch_all_commits(username: str) -> List[Dict]:
+def fetch_all_commits(username: str) -> list:
     url = f"https://api.github.com/users/{username}/repos"
     response = requests.get(url)
-    repos = response.json()
 
-    if not isinstance(repos, list):
+    if response.status_code != 200:
+        print(f"Error fetching repos for {username}: {response.status_code}")
         return []
 
-    commit_data = []
+    repos = response.json()
+    commits = []
+
     for repo in repos:
         repo_name = repo["name"]
-        commits_url = f"https://api.github.com/repos/{username}/{repo_name}/commits"
-        commit_response = requests.get(commits_url)
-        commit_data.extend(commit_response.json())
-    return commit_data
+        commit_url = f"https://api.github.com/repos/{username}/{repo_name}/commits"
+        commit_response = requests.get(commit_url)
 
-def process_commit_data(commit_data: List[Dict]) -> Dict[str, int]:
-    hourly_commits = {}
-    for commit in commit_data:
-        try:
+        if commit_response.status_code != 200:
+            print(f"Error fetching commits for {repo_name}: {commit_response.status_code}")
+            continue
+
+        repo_commits = commit_response.json()
+        for commit in repo_commits:
             commit_date = commit["commit"]["committer"]["date"]
-            dt = datetime.fromisoformat(commit_date[:-1])
-            dt_utc = dt.replace(tzinfo=timezone.utc)
-            hour = dt_utc.hour
-            if hour not in hourly_commits:
-                hourly_commits[str(hour)] = 0
-            hourly_commits[str(hour)] += 1
-        except KeyError:
-            pass
-    return hourly_commits
+            commit_hour = int(commit_date[11:13])
+            commits.append({"hour": commit_hour})
+
+    print("Fetched hourly commits:", commits)  # Debugging line
+    return commits
