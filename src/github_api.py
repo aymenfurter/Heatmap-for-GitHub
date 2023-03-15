@@ -21,21 +21,28 @@ def fetch_all_commits(username):
         commits = response.json()
         commit_data.extend(commits)
 
-    print(commit_data)
-
     return commit_data
 
-def fetch_hourly_commits(username):
+def fetch_hourly_commits_per_weekday(username):
     commit_data = fetch_all_commits(username)
-    hourly_commits = {}
+    hourly_commits_per_weekday = {}
+
+    for i in range(7):  # Initialize the structure
+        hourly_commits_per_weekday[i] = {}
+        for j in range(24):
+            hourly_commits_per_weekday[i][j] = 0
 
     for commit in commit_data:
         try:
             dt = commit["commit"]["author"]["date"]
             dt_obj = parse(dt)
             hour = dt_obj.hour
-            hourly_commits[hour] = hourly_commits.get(hour, 0) + 1
+            weekday = dt_obj.weekday()
+            hourly_commits_per_weekday[weekday][hour] += 1
         except KeyError:
             pass
 
-    return hourly_commits
+    # Flatten the dictionary to a list of tuples
+    flattened_data = [(weekday, hour, count) for weekday, hours in hourly_commits_per_weekday.items() for hour, count in hours.items()]
+
+    return flattened_data

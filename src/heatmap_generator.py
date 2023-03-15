@@ -2,15 +2,13 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-def generate_heatmap(hourly_commits: dict) -> plt.Figure:
+def generate_heatmap(hourly_commits: list) -> plt.Figure:
     # Initialize an empty 7x24 numpy array
     data = np.zeros((7, 24))
 
     # Fill the data array with hourly commit counts
-    for hour, count in hourly_commits.items():
-        day = hour // 24
-        hour_of_day = hour % 24
-        data[day][hour_of_day] = count
+    for weekday, hour, count in hourly_commits:
+        data[weekday][hour] = count
 
     # Create the heatmap using seaborn
     fig, ax = plt.subplots(figsize=(12, 4))
