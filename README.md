@@ -1,5 +1,5 @@
 # GitHub Hourly Heatmap
-[![GitHub Hourly Heatmap](example.png)
+![GitHub Hourly Heatmap](example.png)
 
 GitHub Hourly Heatmap is a web application that generates a heatmap based on the hours of the day a user typically works on their repositories. By supplying a GitHub username, the application retrieves commit data from the user's repositories and generates an image illustrating the user's working hours.
 
